@@ -1,7 +1,7 @@
-local api = require("pixlwiki-client.api")
-local ui = require("pixlwiki-client.ui")
+local api = require("pixlcms-client.api")
+local ui = require("pixlcms-client.ui")
 local fzf = require("fzf-lua")
-local config = require("pixlwiki-client.config")
+local config = require("pixlcms-client.config")
 
 local M = {}
 

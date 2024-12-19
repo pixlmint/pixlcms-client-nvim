@@ -1,5 +1,5 @@
-local config = require("pixlwiki-client.config")
-local api = require("pixlwiki-client.api")
+local config = require("pixlcms-client.config")
+local api = require("pixlcms-client.api")
 local M = {}
 
 M.buffers = {}

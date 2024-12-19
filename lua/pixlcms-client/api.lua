@@ -1,11 +1,11 @@
 local M = {}
 local metadata_cache = {}
-local config = require("pixlwiki-client.config")
+local config = require("pixlcms-client.config")
 
 local curl = require('plenary.curl')
-local util = require('pixlwiki-client.util')
+local util = require('pixlcms-client.util')
 
-local cache_file = vim.fn.stdpath("cache") .. "/pixlwiki-nav.json"
+local cache_file = vim.fn.stdpath("cache") .. "/pixlcms-nav.json"
 local INSTANCE = config.opts.endpoint
 local TOKEN = config.opts.token
 

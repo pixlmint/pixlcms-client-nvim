@@ -2,7 +2,7 @@ local config = {
     opts = {
         token = nil,
         endpoint = nil,
-        project_links = vim.fn.stdpath('state') .. '/nvim/pixlwiki-client',
+        project_links = vim.fn.stdpath('state') .. '/nvim/pixlcms-client',
         enter_opens_popup = false,
     },
 }
