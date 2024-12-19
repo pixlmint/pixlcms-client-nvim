@@ -59,7 +59,7 @@ function M.show_nav_with_data(nav_data)
                 if selected then
                     local entry = get_selected_entry(selected)
                     if entry then
-                        M.open_entry(entry.id)
+                        ui.open_entry(entry.id)
                     end
                 end
             end,
@@ -67,54 +67,23 @@ function M.show_nav_with_data(nav_data)
                 local entry = get_selected_entry(selected)
                 -- Open in vertical split on <Ctrl-V>
                 if entry then
-                    M.open_entry_in_split(entry.id, "v")
+                    ui.open_entry_in_split(entry.id, "v")
+                end
+            end,
+            ["ctrl-o"] = function(selected)
+                local entry = get_selected_entry(selected)
+                if entry then
+                    ui.open_entry_in_current(entry.id)
+                end
+            end,
+            ["ctrl-p"] = function(selected)
+                local entry = get_selected_entry(selected)
+                if entry then
+                    ui.open_entry_in_popup(entry.id)
                 end
             end,
         },
     })
-end
-
--- Open entry in a split view (horizontal or vertical)
-function M.open_entry_in_split(entry_id, split_type)
-    api.fetch_page(entry_id, function(content)
-        local buf = ui.create_entry_buffer(content, entry_id)
-        ui.popup_buf = buf
-
-        if split_type == "v" then
-            vim.cmd("vsplit")
-        else
-            vim.cmd("split")
-        end
-
-        vim.api.nvim_set_current_buf(buf)
-    end)
-end
-
-function M.open_entry(entry_id)
-    if ui.current_entry_id == entry_id and ui.popup_win and vim.api.nvim_win_is_valid(ui.popup_win) then
-        vim.api.nvim_set_current_win(ui.popup_win)
-        return
-    end
-
-    api.fetch_page(entry_id, function (content)
-        ui.open_popup(content, entry_id)
-    end)
-end
-
-function M.show_popup()
-    if ui.current_entry_id and ui.popup_buf and vim.api.nvim_buf_is_valid(ui.popup_buf) then
-        ui.create_popup(ui.popup_buf)
-        vim.api.nvim_set_current_win(ui.popup_win)
-    else
-        print("Invalid Buffer");
-        M.show_nav()
-    end
-end
-
-function M.close_popup()
-    if ui.popup_win and vim.api.nvim_win_is_valid(ui.popup_win) then
-        vim.api.nvim_win_close(ui.popup_win, false)
-    end
 end
 
 function M.create_entry()
@@ -133,13 +102,66 @@ function M.create_entry()
     end)
 end
 
-function M.register_commands()
-    vim.api.nvim_create_user_command("PixlwikiEdit", function (opts)
-        api.fetch_page(opts.args, function (content)
-            ui.open_page_buffer(opts.args, content)
-        end)
-    end, { nargs = 1, complete = "customlist,v:lua.pixlwiki_page_completion"})
+local function get_project_key()
+    return vim.fn.getcwd()
+end
 
+local function load_links()
+    local f = io.open(config.opts.project_links, "r")
+    if f then
+        local content = f:read("*a")
+        f:close()
+        return vim.fn.json_decode(content) or {}
+    else
+        return {}
+    end
+end
+
+local function save_links(links)
+    local f = io.open(config.opts.project_links, "w")
+    if f then
+        f:write(vim.fn.json_encode(links))
+        f:close()
+    else
+        vim.notify("Failed to save project links!", vim.log.levels.ERROR)
+    end
+end
+
+function M.open_project_entry()
+    local project_key = get_project_key()
+    local links = load_links()
+    local entry_id = links[project_key]
+
+    if entry_id then
+        ui.open_entry(entry_id)
+    else
+        M.link_project_entry()
+    end
+end
+
+function M.link_project_entry()
+    local nav_data = api.load_cached_nav() or api.fetch_nav(function(data) return data end)
+    local flat_nav = flatten_nav(nav_data)
+    local entries = vim.tbl_map(function(entry) return entry.title end, flat_nav)
+
+    fzf.fzf_exec(entries, {
+        prompt = "Link Entry to Project > ",
+        actions = {
+            ["default"] = function(selected)
+                local entry = vim.tbl_filter(function(e) return e.title == selected[1] end, flat_nav)[1]
+                if entry then
+                    local project_key = get_project_key()
+                    local links = load_links()
+                    links[project_key] = entry.id
+                    save_links(links)
+                    vim.notify("Linked entry '" .. entry.title .."' to the Project")
+                end
+            end
+        }
+    })
+end
+
+function M.register_commands()
     vim.api.nvim_create_user_command("PixlwikiSave", function ()
         ui.save_current_buffer()
     end, { nargs = 0 })
@@ -153,15 +175,23 @@ function M.register_commands()
     end, { nargs = 0 })
 
     vim.api.nvim_create_user_command("PixlwikiShow", function ()
-        M.show_popup()
+        ui.show_popup()
     end, { nargs = 0 })
 
     vim.api.nvim_create_user_command("PixlwikiClosePopup", function ()
-        M.close_popup()
+        ui.close_popup()
     end, { nargs = 0 })
 
     vim.api.nvim_create_user_command("PixlwikiCreateEntry", function ()
         M.create_entry()
+    end, { nargs = 0 })
+
+    vim.api.nvim_create_user_command("PixlwikiProjectEntry", function ()
+        M.open_project_entry()
+    end, { nargs = 0 })
+
+    vim.api.nvim_create_user_command("PixlwikiProjectLinkEntry", function ()
+        M.link_project_entry()
     end, { nargs = 0 })
 end
 
