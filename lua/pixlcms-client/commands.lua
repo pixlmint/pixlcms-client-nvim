@@ -162,37 +162,30 @@ function M.link_project_entry()
 end
 
 function M.register_commands()
-    vim.api.nvim_create_user_command("PixlwikiSave", function ()
-        ui.save_current_buffer()
-    end, { nargs = 0 })
+    local actions = {
+        ["save"] = ui.save_current_buffer,
+        ["nav"] = M.show_nav,
+        ["nav_refresh"] = M.force_refresh_nav,
+        ["create"] = M.create_entry,
+        ["project_entry"] = M.open_project_entry,
+        ["project_link_entry"] = M.link_project_entry,
+        ["close_popup"] = ui.close_popup,
+    }
+    vim.api.nvim_create_user_command("PixlCms", function (opts)
+        actions[opts.args]()
+    end, {
+            nargs = 1,
+            complete = function (ArgLead, CmdLine, CursorPos)
+                local keyset={}
+                local n=0
 
-    vim.api.nvim_create_user_command("PixlwikiNav", function ()
-        M.show_nav()
-    end, { nargs = 0 })
-
-    vim.api.nvim_create_user_command("PixlwikiNavRefresh", function ()
-        M.force_refresh_nav()
-    end, { nargs = 0 })
-
-    vim.api.nvim_create_user_command("PixlwikiShow", function ()
-        ui.show_popup()
-    end, { nargs = 0 })
-
-    vim.api.nvim_create_user_command("PixlwikiClosePopup", function ()
-        ui.close_popup()
-    end, { nargs = 0 })
-
-    vim.api.nvim_create_user_command("PixlwikiCreateEntry", function ()
-        M.create_entry()
-    end, { nargs = 0 })
-
-    vim.api.nvim_create_user_command("PixlwikiProjectEntry", function ()
-        M.open_project_entry()
-    end, { nargs = 0 })
-
-    vim.api.nvim_create_user_command("PixlwikiProjectLinkEntry", function ()
-        M.link_project_entry()
-    end, { nargs = 0 })
+                for k, _ in pairs(actions) do
+                    n=n+1
+                    keyset[n]=k
+                end
+                return keyset
+            end,
+        })
 end
 
 return M
