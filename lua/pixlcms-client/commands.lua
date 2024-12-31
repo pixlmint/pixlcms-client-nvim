@@ -161,6 +161,13 @@ function M.link_project_entry()
     })
 end
 
+function M.journal_current()
+    api.current(function (id)
+        api.fetch_nav()
+        ui.open_entry(id)
+    end)
+end
+
 function M.register_commands()
     local actions = {
         ["save"] = ui.save_current_buffer,
@@ -170,12 +177,14 @@ function M.register_commands()
         ["project_entry"] = M.open_project_entry,
         ["project_link_entry"] = M.link_project_entry,
         ["close_popup"] = ui.close_popup,
+        ["select_endpoint"] = ui.select_endpoint,
+        ["journal_current"] = M.journal_current,
     }
     vim.api.nvim_create_user_command("PixlCms", function (opts)
         actions[opts.args]()
     end, {
             nargs = 1,
-            complete = function (ArgLead, CmdLine, CursorPos)
+            complete = function ()
                 local keyset={}
                 local n=0
 

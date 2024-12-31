@@ -1,5 +1,6 @@
 local config = require("pixlcms-client.config")
 local api = require("pixlcms-client.api")
+local fzf = require("fzf-lua")
 local M = {}
 
 M.buffers = {}
@@ -107,6 +108,32 @@ function M.close_popup()
     if M.popup_win and vim.api.nvim_win_is_valid(M.popup_win) then
         vim.api.nvim_win_close(M.popup_win, false)
     end
+end
+
+function M.select_endpoint()
+    local endpoints = config.opts.endpoints
+    local options = {}
+    local n=0
+
+    for k, _ in pairs(endpoints) do
+        n=n+1
+        options[n]=k
+    end
+
+    local function set_endpoint(name)
+        vim.print(name)
+        config.opts.endpoint = endpoints[name]['domain']
+        config.opts.token = endpoints[name]['token']
+    end
+
+    fzf.fzf_exec(options, {
+        prompt = "Select Endpoint > ",
+        actions = {
+            ["default"] = function (selected)
+                set_endpoint(selected[1])
+            end,
+        }
+    })
 end
 
 return M

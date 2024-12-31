@@ -6,13 +6,19 @@ local curl = require('plenary.curl')
 local util = require('pixlcms-client.util')
 
 local cache_file = vim.fn.stdpath("cache") .. "/pixlcms-nav.json"
-local INSTANCE = config.opts.endpoint
-local TOKEN = config.opts.token
+
+local function get_instance()
+    return config.opts.endpoint
+end
+
+local function get_token()
+    return config.opts.token
+end
 
 function M.fetch_page(page_id, callback)
-    local response = curl.get(INSTANCE .. "/api/entry/view?p=" .. page_id, {
+    local response = curl.get(get_instance() .. "/api/entry/view?p=" .. page_id, {
         headers = {
-            ["pixltoken"] = TOKEN,
+            ["pixltoken"] = get_token(),
         },
     })
     if response.status == 200 then
@@ -32,11 +38,11 @@ function M.save_page(page_id, content)
         ["lastUpdate"] = "",
     }
     -- vim.print(form)
-    local response = curl.put(INSTANCE .. "/api/admin/entry/edit", {
+    local response = curl.put(get_instance() .. "/api/admin/entry/edit", {
         body = util.urlencode(form),
         headers = {
             ["content-type"] = "application/x-www-form-urlencoded",
-            ["pixltoken"] = TOKEN,
+            ["pixltoken"] = get_token(),
         },
     })
     -- vim.print(response.body)
@@ -49,19 +55,31 @@ function M.save_page(page_id, content)
 end
 
 function M.fetch_nav(callback)
-    local response = curl.get(INSTANCE .. "/api/nav", {
+    local response = curl.get(get_instance() .. "/api/nav?forceReload", {
         headers = {
-            ["pixltoken"] = TOKEN,
+            ["pixltoken"] = get_token(),
         },
     })
     if response.status == 200 then
         local data = vim.fn.json_decode(response.body)
-        local file = io.open(cache_file, "w")
+        io.open(cache_file, "w"):close() -- make sure the file exists
+        local file = io.open(cache_file, "r+")
         if file then
-            file:write(response.body)
+            vim.print(file:read("*a"))
+            local nav_data_str = file:read("*a")
+            local nav_data = {}
+            if (string.len(nav_data_str) > 0) then
+                nav_data = vim.fn.json_decode(nav_data_str)
+            end
+            nav_data[get_instance()] = vim.fn.json_decode(response.body)
+            file:write(vim.fn.json_encode(nav_data))
             file:close()
+        else
+            vim.notify("Unable to cache nav to " .. cache_file, vim.log.levels.ERROR)
         end
-        callback(data)
+        if callback then
+            callback(data)
+        end
     else
         vim.notify("Failed to fetch navigation data", vim.log.levels.ERROR)
     end
@@ -72,7 +90,7 @@ function M.load_cached_nav()
     if file then
         local content = file:read("*a")
         file:close()
-        return vim.fn.json_decode(content)
+        return vim.fn.json_decode(content)[get_instance()]
     else
         return nil
     end
@@ -83,10 +101,10 @@ function M.create_entry(parent_folder, title, callback)
         ["parentFolder"] = parent_folder,
         ["title"] = title,
     }
-    local response = curl.post(INSTANCE .. "/api/admin/entry/add", {
+    local response = curl.post(get_instance() .. "/api/admin/entry/add", {
         body = util.urlencode(form),
         headers = {
-            ["pixltoken"] = TOKEN,
+            ["pixltoken"] = get_token(),
             ["content-type"] = "application/x-www-form-urlencoded",
         },
     })
@@ -98,6 +116,28 @@ function M.create_entry(parent_folder, title, callback)
         end
     else
         vim.notify("Failed to create page " .. title, vim.log.levels.ERROR)
+    end
+end
+
+
+-- Journal Only
+
+function M.current(callback)
+    local response = curl.post(get_instance() .. "/api/admin/entry/edit/current", {
+        headers = {
+            ["pixltoken"] = get_token(),
+            ["content-type"] = "application/x-www-form-urlencoded",
+        },
+    })
+
+    if response.status == 200 then
+        local current_entry = vim.fn.json_decode(response.body)["entryId"]
+        vim.notify("Loaded current entry " .. current_entry, vim.log.levels.INFO)
+        if callback then
+            callback(current_entry)
+        end
+    else
+        vim.notify("Unable to get current entry", vim.log.levels.ERROR)
     end
 end
 
