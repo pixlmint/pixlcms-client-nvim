@@ -35,7 +35,7 @@ function M.show_nav_with_data(nav_data)
 
     local function open_entry(selected, mode)
         if selected then
-            local entry = get_selected_entry(selected)
+            local entry = get_selected_entry(selected)['id']
             if entry then
                 if mode == "default" then ui.open_entry(entry) end
                 if mode == "vertical" then ui.open_entry_in_split(entry, "v") end

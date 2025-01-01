@@ -35,7 +35,7 @@ function M.get_opened_entries_sorted()
         table.insert(entries_flat, v)
     end
     table.sort(entries_flat, function (a, b)
-        return b['last_opened'] - a['last_opened']
+        return a['last_opened'] > b['last_opened']
     end)
     return entries_flat
 end

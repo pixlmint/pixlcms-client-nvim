@@ -24,7 +24,7 @@ local function log_opened_entry(entry)
         }
     end
     opened_entries[entry]["times_opened"] = opened_entries[entry]["times_opened"] + 1
-    opened_entries[entry]["last_opened"] = os.time(os.date("!*t"))
+    opened_entries[entry]["last_opened"] = os.time()
     util.set_opened_entries(opened_entries)
 end
 
