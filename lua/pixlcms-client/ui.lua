@@ -36,24 +36,16 @@ function M.create_popup(buf)
 end
 
 function M.create_entry_buffer(content, entry_id)
-    local buf = vim.api.nvim_create_buf(false, true)
+    local buf = vim.api.nvim_create_buf(false, false)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(content, "\n"))
     vim.api.nvim_set_option_value("filetype", "markdown", {
         buf = buf
     })
 
-    vim.api.nvim_buf_create_user_command(buf, "Write", function()
-        local new_content = table.concat(vim.api.nvim_buf_get_lines(M.buffers[entry_id], 0, -1, false), "\n")
-        api.save_page(entry_id, new_content)
-    end, { nargs = 0 })
-
     vim.api.nvim_buf_set_name(buf, "pw://" .. entry_id)
 
-    vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':PixlwikiClosePopup<CR>', { desc = "Close Popup", silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'n', '<C-s>', ":Write<CR>", { desc = "Save", silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'v', '<C-s>', ":Write<CR>", { desc = "Save", silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'i', '<C-s>', ":Write<CR>", { desc = "Save", silent = true })
-
+    vim.bo[buf].modified = false
+    vim.bo[buf].buftype = ''
     M.buffers[entry_id] = buf
     return buf
 end

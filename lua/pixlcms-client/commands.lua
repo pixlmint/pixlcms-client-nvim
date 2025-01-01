@@ -147,6 +147,32 @@ function M.journal_current()
     end)
 end
 
+vim.api.nvim_create_augroup("PixlCMS", {})
+
+vim.api.nvim_create_autocmd("BufWriteCmd", {
+    group = "PixlCMS",
+    pattern = "pw://*",
+    callback = function ()
+        local current_buf = vim.api.nvim_get_current_buf()
+        local entry_id = vim.api.nvim_buf_get_name(current_buf)
+        entry_id = entry_id:gsub("pw://", "")
+        local new_content = table.concat(vim.api.nvim_buf_get_lines(current_buf, 0, -1, false), "\n")
+        api.save_page(entry_id, new_content)
+        vim.bo.modified = false
+    end
+})
+
+vim.api.nvim_create_autocmd("BufReadCmd", {
+    pattern = "pw://*",
+    group = "PixlCMS",
+    callback = function ()
+        local current_buf = vim.api.nvim_get_current_buf()
+        local entry_id = vim.api.nvim_buf_get_name(current_buf)
+        entry_id = entry_id:gsub("pw://", "")
+        ui.open_entry(entry_id)
+    end
+})
+
 function M.register_commands()
     local actions = {
         ["save"] = ui.save_current_buffer,
