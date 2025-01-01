@@ -15,6 +15,19 @@ local function get_token()
     return config.opts.token
 end
 
+local function log_opened_entry(entry)
+    local opened_entries = util.get_opened_entries()
+    if opened_entries[entry] == nil then
+        opened_entries[entry] = {
+            times_opened = 0,
+            last_opened = -1,
+        }
+    end
+    opened_entries[entry]["times_opened"] = opened_entries[entry]["times_opened"] + 1
+    opened_entries[entry]["last_opened"] = os.time(os.date("!*t"))
+    util.set_opened_entries(opened_entries)
+end
+
 function M.fetch_page(page_id, callback)
     local response = curl.get(get_instance() .. "/api/entry/view?p=" .. page_id, {
         headers = {
@@ -22,6 +35,7 @@ function M.fetch_page(page_id, callback)
         },
     })
     if response.status == 200 then
+        log_opened_entry(page_id)
         local data = vim.fn.json_decode(response.body)
         metadata_cache[page_id] = data.meta
         callback(data.raw_content)
@@ -37,7 +51,6 @@ function M.save_page(page_id, content)
         ["meta"] = vim.fn.json_encode(metadata_cache[page_id]),
         ["lastUpdate"] = "",
     }
-    -- vim.print(form)
     local response = curl.put(get_instance() .. "/api/admin/entry/edit", {
         body = util.urlencode(form),
         headers = {
@@ -45,8 +58,6 @@ function M.save_page(page_id, content)
             ["pixltoken"] = get_token(),
         },
     })
-    -- vim.print(response.body)
-    -- vim.print(vim.fn.json_decode(response.body))
     if response.status == 200 then
         vim.notify("Page saved successfully!", vim.log.levels.INFO)
     else
@@ -62,10 +73,11 @@ function M.fetch_nav(callback)
     })
     if response.status == 200 then
         local data = vim.fn.json_decode(response.body)
-        io.open(cache_file, "w"):close() -- make sure the file exists
+        if not util.is_file(cache_file) then
+            io.open(cache_file, "w"):close()
+        end
         local file = io.open(cache_file, "r+")
         if file then
-            vim.print(file:read("*a"))
             local nav_data_str = file:read("*a")
             local nav_data = {}
             if (string.len(nav_data_str) > 0) then

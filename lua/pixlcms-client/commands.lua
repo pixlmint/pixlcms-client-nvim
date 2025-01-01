@@ -2,29 +2,9 @@ local api = require("pixlcms-client.api")
 local ui = require("pixlcms-client.ui")
 local fzf = require("fzf-lua")
 local config = require("pixlcms-client.config")
+local util = require("pixlcms-client.util")
 
 local M = {}
-
-local function flatten_nav(nav, parent, folders_only)
-    local results = {}
-    for _, item in ipairs(nav) do
-        local path = parent and (parent .. " > " .. item.title) or item.title
-        if item.kind and item.kind == 'board' then
-        elseif item.isFolder then
-            -- vim.print(item.children)
-            -- print(#item.children)
-            if folders_only then
-                table.insert(results, { title = item.title, id = item.id })
-            end
-            -- print(#item.children, item.title)
-            vim.list_extend(results, flatten_nav(item.children, path, folders_only))
-        elseif not folders_only then
-            table.insert(results, { title = path, id = item.id })
-        end
-    end
-
-    return results
-end
 
 function M.show_nav()
     local nav_data = api.load_cached_nav()
@@ -39,55 +19,53 @@ function M.show_nav()
 end
 
 function M.force_refresh_nav()
-    api.fetch_nav(function(data)
+    api.fetch_nav(function()
         vim.notify("Navigation updated from API", vim.log.levels.INFO)
     end)
 end
 
+
 function M.show_nav_with_data(nav_data)
-    local flat_nav = flatten_nav(nav_data, nil, false)
+    local flat_nav = util.flatten_nav(nav_data, nil, false)
     local entries = vim.tbl_map(function (entry) return entry.id end, flat_nav)
 
     local function get_selected_entry(selected)
         return vim.tbl_filter(function (e) return e.id == selected[1] end, flat_nav)[1]
     end
 
+    local function open_entry(selected, mode)
+        if selected then
+            local entry = get_selected_entry(selected)
+            if entry then
+                if mode == "default" then ui.open_entry(entry) end
+                if mode == "vertical" then ui.open_entry_in_split(entry, "v") end
+                if mode == "popup" then ui.open_entry_in_popup(entry) end
+                if mode == "current" then ui.open_entry_in_current(entry) end
+            end
+        end
+    end
+
     fzf.fzf_exec(entries, {
         prompt = config.opts.endpoint .. " > ",
         actions = {
             ["default"] = function (selected)
-                if selected then
-                    local entry = get_selected_entry(selected)
-                    if entry then
-                        ui.open_entry(entry.id)
-                    end
-                end
+                open_entry(selected, 'default')
             end,
             ["ctrl-v"] = function(selected)
-                local entry = get_selected_entry(selected)
-                -- Open in vertical split on <Ctrl-V>
-                if entry then
-                    ui.open_entry_in_split(entry.id, "v")
-                end
+                open_entry(selected, "vertical")
             end,
             ["ctrl-o"] = function(selected)
-                local entry = get_selected_entry(selected)
-                if entry then
-                    ui.open_entry_in_current(entry.id)
-                end
+                open_entry(selected, "current")
             end,
             ["ctrl-p"] = function(selected)
-                local entry = get_selected_entry(selected)
-                if entry then
-                    ui.open_entry_in_popup(entry.id)
-                end
+                open_entry(selected, "popup")
             end,
         },
     })
 end
 
 function M.create_entry()
-    local options = flatten_nav(api.load_cached_nav(), nil, true)
+    local options = util.flatten_nav(api.load_cached_nav(), nil, true)
     local entries = vim.tbl_map(function (entry) return entry.id end, options)
     vim.ui.select(entries, {}, function(selected)
         local title = vim.fn.input({
@@ -141,7 +119,7 @@ end
 
 function M.link_project_entry()
     local nav_data = api.load_cached_nav() or api.fetch_nav(function(data) return data end)
-    local flat_nav = flatten_nav(nav_data)
+    local flat_nav = util.flatten_nav(nav_data)
     local entries = vim.tbl_map(function(entry) return entry.title end, flat_nav)
 
     fzf.fzf_exec(entries, {
@@ -155,6 +133,7 @@ function M.link_project_entry()
                     links[project_key] = entry.id
                     save_links(links)
                     vim.notify("Linked entry '" .. entry.title .."' to the Project")
+                    M.open_project_entry()
                 end
             end
         }
@@ -183,18 +162,18 @@ function M.register_commands()
     vim.api.nvim_create_user_command("PixlCms", function (opts)
         actions[opts.args]()
     end, {
-            nargs = 1,
-            complete = function ()
-                local keyset={}
-                local n=0
+    nargs = '?',
+    complete = function ()
+        local keyset={}
+        local n=0
 
-                for k, _ in pairs(actions) do
-                    n=n+1
-                    keyset[n]=k
-                end
-                return keyset
-            end,
-        })
+        for k, _ in pairs(actions) do
+            n=n+1
+            keyset[n]=k
+        end
+        return keyset
+    end,
+})
 end
 
 return M
