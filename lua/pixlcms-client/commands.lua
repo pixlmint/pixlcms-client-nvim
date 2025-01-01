@@ -9,7 +9,7 @@ local M = {}
 function M.show_nav()
     local nav_data = api.load_cached_nav()
     if not nav_data then
-        vim.notify("No cached nav, fetching from API", vim.log.levels.ERROR)
+        vim.notify("No cached nav, fetching from API", vim.log.levels.INFO)
         api.fetch_nav(function(data)
             M.show_nav_with_data(data)
         end)

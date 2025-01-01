@@ -76,13 +76,17 @@ function M.fetch_nav(callback)
         if not util.is_file(cache_file) then
             io.open(cache_file, "w"):close()
         end
-        local file = io.open(cache_file, "r+")
+        local file = io.open(cache_file, "r")
+        local nav_data = {}
         if file then
             local nav_data_str = file:read("*a")
-            local nav_data = {}
             if (string.len(nav_data_str) > 0) then
                 nav_data = vim.fn.json_decode(nav_data_str)
             end
+            file:close()
+        end
+        file = io.open(cache_file, "w")
+        if file then
             nav_data[get_instance()] = vim.fn.json_decode(response.body)
             file:write(vim.fn.json_encode(nav_data))
             file:close()
