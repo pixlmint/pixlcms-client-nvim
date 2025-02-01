@@ -185,21 +185,28 @@ function M.register_commands()
         ["select_endpoint"] = ui.select_endpoint,
         ["journal_current"] = M.journal_current,
     }
-    vim.api.nvim_create_user_command("PixlCms", function (opts)
-        actions[opts.args]()
-    end, {
-    nargs = '?',
-    complete = function ()
-        local keyset={}
-        local n=0
+    vim.api.nvim_create_user_command(
+        "PixlCms",
+        function (opts)
+            actions[opts.args]()
+        end,
+        {
+            nargs = '?',
+            complete = function (cmd)
+                vim.print(cmd)
+                local keyset={}
+                local n=0
 
-        for k, _ in pairs(actions) do
-            n=n+1
-            keyset[n]=k
-        end
-        return keyset
-    end,
-})
+                for k, _ in pairs(actions) do
+                    if cmd == "" or string.sub(k, 1, string.len(cmd)) == cmd then
+                        n=n+1
+                        keyset[n]=k
+                    end
+                end
+                table.sort(keyset)
+                return keyset
+            end,
+        })
 end
 
 return M
