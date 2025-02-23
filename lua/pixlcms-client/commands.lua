@@ -140,6 +140,17 @@ function M.link_project_entry()
     })
 end
 
+function M.refresh_current_entry()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local entry_id = vim.api.nvim_buf_get_name(current_buf)
+    entry_id = entry_id:gsub("pw://", "")
+    vim.print(entry_id)
+    api.fetch_page(entry_id, function(content)
+        vim.api.nvim_buf_set_lines(current_buf, 0, -1, false, vim.split(content, "\n"))
+        vim.bo[current_buf].modified = false
+    end)
+end
+
 function M.journal_current()
     api.current(function (id)
         api.fetch_nav()
@@ -184,6 +195,7 @@ function M.register_commands()
         ["close_popup"] = ui.close_popup,
         ["select_endpoint"] = ui.select_endpoint,
         ["journal_current"] = M.journal_current,
+        ["refresh_current_entry"] = M.refresh_current_entry,
     }
     vim.api.nvim_create_user_command(
         "PixlCms",
@@ -193,7 +205,6 @@ function M.register_commands()
         {
             nargs = '?',
             complete = function (cmd)
-                vim.print(cmd)
                 local keyset={}
                 local n=0
 
