@@ -65,6 +65,20 @@ function M.save_page(page_id, content)
     end
 end
 
+function M.load_media(page_id, callback)
+    local response = curl.get(get_instance() .. "/api/admin/gallery/load?gallery=" .. page_id, {
+        headers = {
+            ["pixltoken"] = get_token(),
+        }
+    })
+    if response.status == 200 then
+        local data = vim.fn.json_decode(response.body)
+        callback(data)
+    else
+        vim.notify("Failed to load gallery for entry " .. page_id)
+    end
+end
+
 function M.fetch_nav(callback)
     local response = curl.get(get_instance() .. "/api/nav?forceReload", {
         headers = {

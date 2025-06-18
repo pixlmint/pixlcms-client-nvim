@@ -151,6 +151,49 @@ function M.refresh_current_entry()
     end)
 end
 
+local function url_encode(str)
+    if str then
+        str = string.gsub(str, "([^%w%-%.%_%~%/%:%?%#%[%]%@])", function(c)
+            return string.format("%%%02X", string.byte(c))
+        end)
+    end
+    return str
+end
+
+function M.select_media()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local entry_id = vim.api.nvim_buf_get_name(current_buf)
+    entry_id = entry_id:gsub("pw://", "")
+    local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+    vim.print(row, col, current_buf)
+
+    api.load_media(entry_id, function(gallery)
+        local paths = {}
+        for _, category in ipairs(gallery.media) do
+            for _, item in ipairs(category.media) do
+                if item.default then
+                    local remote_path = config.opts.endpoint .. url_encode(item.default)
+                    table.insert(paths, remote_path)
+                end
+            end
+        end
+        fzf.fzf_exec(paths, {
+            prompt = "Media > ",
+            preview = "ueberzug",
+            actions = {
+                ['enter'] = function(args) -- enter
+                    local media_tag = string.format("![image](%s)", args[1])
+                    vim.api.nvim_buf_set_text(current_buf, row - 1, col, row - 1, col, { media_tag })
+                end,
+                ['ctrl-y'] = function(args) -- yank
+                    vim.fn.setreg("", args[1])
+                    vim.notify("URL yanked", vim.log.levels.INFO)
+                end
+            },
+        })
+    end)
+end
+
 function M.journal_current()
     api.current(function (id)
         api.fetch_nav()
@@ -196,6 +239,7 @@ function M.register_commands()
         ["select_endpoint"] = ui.select_endpoint,
         ["journal_current"] = M.journal_current,
         ["refresh_current_entry"] = M.refresh_current_entry,
+        ["select_media"] = M.select_media,
     }
     vim.api.nvim_create_user_command(
         "PixlCms",
