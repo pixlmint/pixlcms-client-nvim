@@ -67,10 +67,10 @@ end
 function M.create_entry()
     local options = util.flatten_nav(api.load_cached_nav(), nil, true)
     local entries = vim.tbl_map(function (entry) return entry.id end, options)
-    vim.ui.select(entries, {}, function(selected)
-        local title = vim.fn.input({
-            prompt = "Title > ",
-        })
+    vim.ui.select(entries, {
+        prompt = "Select Folder",
+    }, function(selected)
+        local title = vim.fn.input("Title > ")
         if title ~= '' and title ~= nil then
             api.create_entry(selected, title, function(data)
                 api.fetch_nav()
