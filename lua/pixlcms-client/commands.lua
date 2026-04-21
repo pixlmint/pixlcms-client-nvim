@@ -201,6 +201,33 @@ function M.journal_current()
     end)
 end
 
+function M.upload_clipboard_image()
+    local cmd_check = "wl-paste --list-types"
+    local handles = vim.fn.system(cmd_check)
+
+    local current_buf = vim.api.nvim_get_current_buf()
+    local entry_id = vim.api.nvim_buf_get_name(current_buf)
+    entry_id = entry_id:gsub("pw://", "")
+
+    local mime = handles:match("%w+/%w+")
+
+    if mime == "image/png" or mime == "image/jpeg" then
+        local ext = mime == "image/png" and ".png" or ".jpg"
+        local tmp_file = vim.fn.tempname() .. ext
+        vim.fn.system("wl-paste > " .. tmp_file)
+
+        if vim.fn.filereadable(tmp_file) == 0 then
+            vim.notify("Failed to read image from clipboard", vim.log.levels.ERROR)
+            return
+        end
+
+        api.upload_image(tmp_file, entry_id)
+        vim.fn.delete(tmp_file)
+    else
+        vim.notify("No image found in clipboard", vim.log.levels.WARN)
+    end
+end
+
 vim.api.nvim_create_augroup("PixlCMS", {})
 
 vim.api.nvim_create_autocmd("BufWriteCmd", {
@@ -240,6 +267,7 @@ function M.register_commands()
         ["journal_current"] = M.journal_current,
         ["refresh_current_entry"] = M.refresh_current_entry,
         ["select_media"] = M.select_media,
+        ["upload_clipboard_image"] = M.upload_clipboard_image,
     }
     vim.api.nvim_create_user_command(
         "PixlCms",

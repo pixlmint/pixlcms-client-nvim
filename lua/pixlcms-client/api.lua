@@ -171,4 +171,22 @@ function M.current(callback)
     end
 end
 
+function M.upload_image(file_path, page_id)
+    local response = curl.post(get_instance() .. "/api/admin/gallery/upload", {
+        form = {
+            ["gallery"] = page_id,
+            ["file"] = "@" .. file_path,
+        },
+        headers = {
+            ["pixltoken"] = get_token(),
+        },
+    })
+
+    if response.status == 200 then
+        vim.notify("Image uploaded successfully!", vim.log.levels.INFO)
+    else
+        vim.notify("Failed to upload image: " .. response.status, vim.log.levels.ERROR)
+    end
+end
+
 return M
