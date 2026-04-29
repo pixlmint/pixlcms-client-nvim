@@ -179,7 +179,7 @@ function M.select_media()
         end
         fzf.fzf_exec(paths, {
             prompt = "Media > ",
-            preview = "ueberzug",
+            -- preview = "ueberzug",
             actions = {
                 ['enter'] = function(args) -- enter
                     local media_tag = string.format("![image](%s)", args[1])
@@ -228,6 +228,30 @@ function M.upload_clipboard_image()
     end
 end
 
+function M.login()
+    vim.ui.input({ prompt = "Username ", },
+        function(username)
+            vim.ui.input({ prompt = "Password " },
+                function(password)
+                    api.login(username, password, function(response)
+                        vim.print(response)
+                    end)
+                end)
+        end)
+end
+
+function M.create_admin()
+    vim.ui.input({ prompt = "Username ", },
+        function(username)
+            vim.ui.input({ prompt = "Password " },
+                function(password)
+                    api.create_admin(username, password, function(response)
+                        vim.print(response)
+                    end)
+                end)
+        end)
+end
+
 vim.api.nvim_create_augroup("PixlCMS", {})
 
 vim.api.nvim_create_autocmd("BufWriteCmd", {
@@ -268,6 +292,8 @@ function M.register_commands()
         ["refresh_current_entry"] = M.refresh_current_entry,
         ["select_media"] = M.select_media,
         ["upload_clipboard_image"] = M.upload_clipboard_image,
+        ["login"] = M.login,
+        ["create_admin"] = M.create_admin,
     }
     vim.api.nvim_create_user_command(
         "PixlCms",

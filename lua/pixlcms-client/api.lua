@@ -149,6 +149,50 @@ function M.create_entry(parent_folder, title, callback)
     end
 end
 
+function M.login(username, password, callback)
+    local form = {
+        ["username"] = username,
+        ["password"] = password,
+    }
+    local response = curl.post(get_instance() .. "/api/auth/login", {
+        body = util.urlencode(form),
+        headers = {
+            ["content-type"] = "application/x-www-form-urlencoded",
+        },
+    })
+
+    if response.status == 200 then
+        vim.notify("Page created successfully!", vim.log.levels.INFO)
+        if callback then
+            callback(vim.fn.json_decode(response.body))
+        end
+    else
+        vim.notify("Login failed", vim.log.levels.ERROR)
+    end
+end
+
+function M.create_admin(username, password, callback)
+    local form = {
+        ["username"] = username,
+        ["password"] = password,
+    }
+    local response = curl.post(get_instance() .. "/api/auth/create-admin", {
+        body = util.urlencode(form),
+        headers = {
+            ["content-type"] = "application/x-www-form-urlencoded",
+        },
+    })
+
+    if response.status == 200 then
+        vim.notify("Page created successfully!", vim.log.levels.INFO)
+        if callback then
+            callback(vim.fn.json_decode(response.body))
+        end
+    else
+        vim.notify("Login failed", vim.log.levels.ERROR)
+    end
+end
+
 
 -- Journal Only
 
